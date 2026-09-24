@@ -1,0 +1,92 @@
+Slide 1: System Overview
+Title: LoRa-E5 Peer-to-Peer Communication System
+* Core Objective: A robust, bidirectional peer-to-peer LoRa communication network.
+* Hardware Foundation: Built on Seeed Studio LoRa-E5 (STM32WLE5JC) modules.
+* Major Upgrade: Evolved from a basic Master-Slave "Ping/Pong" to a full-duplex, chat-style communication system.
+* Key Capabilities:
+  - On-the-fly dynamic radio reconfiguration.
+  - Comprehensive UART-based command interface.
+  - Seamless integration with a USB-UART bridge.
+
+Slide 2: System Architecture & Firmware
+Title: Architecture & Deployment
+* LoRa-E5 Nodes: 
+  - Handles sub-GHz LoRa transmission and reception.
+* STM32F407 Bridge: 
+  - Acts as a USB-UART intermediary connecting the LoRa-E5 to a host PC.
+* Firmware Deployments:
+  - Lorapram_Master.hex: Initiator node. Broadcasts encapsulated text with metadata (Freq, SF, BW, UID, CRC).
+  - Lorapram_Slave.hex: Responder node. Listens, extracts data, and replies to the Master.
+
+Slide 3: Terminal Experience & UART Interface
+Title: UART Interface & Terminal Behavior
+* Default UART Configuration: 
+  - 115200 Baud, 8 Data Bits, No Parity, 1 Stop Bit (8N1).
+* Terminal Experience Features:
+  - Local Echo: Characters instantly echo back to the screen as you type.
+  - Backspace Support: Fully supports typo corrections (\b or DEL) before sending.
+  - Execution: Commands trigger upon pressing Enter.
+* Special Character Handling:
+  - Numbers 1-8 typed as the *first* character trigger system shortcuts.
+  - Tip: To send a message starting with a number (e.g., "1234"), type a <SPACE> first.
+
+Slide 4: Dynamic Radio Reconfiguration
+Title: On-The-Fly RF Modulation (Shortcuts 1-7)
+(Instantly swap radio profiles via single-byte commands. The system intelligently pauses for 1s to sync the remote node.)
+
+* 1 | Ultra Long Range: SF12 / 31 kHz / 20 dBm (Max distance)
+* 2 | Fast Data: SF7 / 62 kHz / 14 dBm (High bandwidth)
+* 3 | Balanced (Default): SF9 / 31 kHz / 14 dBm (Best mix of speed/range)
+* 4 | Indoor Penetration: SF11 / 31 kHz / 14 dBm (Punches through walls)
+* 5 | Low Power Battery: SF7 / 31 kHz / 2 dBm (Minimal energy consumption)
+* 6 | High Noise: SF10 / 31 kHz / 14 dBm (Max error correction)
+* 7 | Sensor Streaming: SF8 / 41 kHz / 14 dBm (Continuous small packets)
+
+Slide 5: System Control Commands
+Title: State Machine System Commands
+(String-based commands to completely control the LoRa application state.)
+
+* CFG (Configure): 
+  - Puts the radio into Standby.
+  - Pauses communication safely so parameters can be tweaked without interrupting active transmissions.
+* START (Resume): 
+  - Exits Config mode and wakes up the radio to resume communication.
+* STOP (Halt): 
+  - Completely halts the state machine and puts the radio to sleep.
+* STATUS (Diagnostics): 
+  - Prints a diagnostic dump of current parameters (Freq, SF, BW, CR, TX Power).
+
+Slide 6: Full-Duplex Text Transmission
+Title: Chat-Style Text Broadcasting
+* Operation: Type any printable text (up to 15 characters) into the Master terminal and press Enter.
+* Data Integrity: The firmware calculates a CRC-16 checksum over the payload automatically.
+* Packet Structure Over-The-Air:
+  - [TEXT] | [FREQ] | SF[SF] | [BW]kHz | [CHIP_UID] | CRC:[CHECKSUM]
+* Example Payload: 
+  - HELLO WORLD | 865000000 | SF9 | 31kHz | 0x32A4B | CRC:0x4F21
+
+Slide 7: STM32F407 USB-UART Bridge
+Title: Hardware Bridging via STM32F407
+* Function: Acts as a transparent USB CDC (Virtual COM Port) to UART bridge.
+* Performance: 
+  - Utilizes interrupt-driven UART (USART6_IRQHandler).
+  - Implements ring buffers to guarantee zero data loss during high-speed diagnostic dumps.
+* Smart Sync: 
+  - Supports dynamic baud rate switching via USB commands. The F407 automatically intercepts terminal settings and syncs its hardware pins to match the LoRa module.
+
+Slide 8: Error Handling & Reliability
+Title: System Robustness
+* CRC Checks: Uses CRC-16/CCITT checksums on user payloads to guarantee data integrity over the air.
+* Overrun Protection: Actively manages UART interrupts (RXNE) and Overrun flags (ORE) to prevent terminal lockups under heavy traffic.
+* Timeout Recovery: State machine gracefully resets to IDLE upon transmission or reception timeouts, readying itself for the next attempt.
+
+Slide 9: Dynamic UART Wizard
+Title: Runtime UART Configuration Wizard
+* Feature: Change LoRa UART settings on the fly without reflashing firmware.
+* Workflow:
+  1. Press 8 to view current settings and open the Wizard.
+  2. Input new Baud Rate (e.g., 9600, 115200).
+  3. Input new Data Bits (7 or 8).
+  4. Input new Parity (N, E, O).
+* Execution: Module applies hardware changes instantly. User then updates their PC terminal emulator to match the new settings to restore communication.
+* (Note: 8 Data Bits and No Parity is recommended for maximum compatibility with cheap USB adapters).
